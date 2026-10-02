@@ -10,7 +10,7 @@ Daily use and the steps into Final Cut Pro or DaVinci Resolve. [README.md](READM
 .venv/bin/python -m clipengine ui
 ```
 
-Rerun `scan` and `analyze` after adding or downloading footage. The grid shows analyzed clips only, and decode failures show in `status`. A clip shot without log in a log profile folder comes out oversaturated, so move it.
+Rerun `scan` and `analyze` after adding or downloading footage. The grid shows analyzed clips only. `status` counts decode failures and `audit` lists them. A clip not shot in log but stored in a log profile folder is normalized anyway and comes out oversaturated, so move it.
 
 Open http://127.0.0.1:8763 in Safari, which plays HEVC and ProRes previews that Chrome may not. Add `--port=8764` if the port is taken.
 
@@ -18,7 +18,7 @@ Open http://127.0.0.1:8763 in Safari, which plays HEVC and ProRes previews that 
 
 1. Pick a mode in the header, then a clip in the grid. Filter by country, move or name.
 2. Click find matches. A score near 1.0 means the cut should feel invisible or intentional. The four bars are motion, energy, color and luma.
-3. Add clips with + tray, or set a length and click `auto-build` to chain from the selected clip.
+3. Add clips with + tray, or set len and click auto-build to chain from the selected clip.
 4. Click export once the tray holds at least two clips.
 
 | mode | use it for |
@@ -28,7 +28,7 @@ Open http://127.0.0.1:8763 in Safari, which plays HEVC and ProRes previews that 
 | calm | intros, outros, ambience |
 | contrast | section changes, day to night |
 
-The country options keep one place (same) or force variety (different, travel). Trust the motion bar over the color bar. For whip mode, end a shot with a hard whip and start the next whipping the same way.
+The country options keep one place (same) or force variety (different, travel). In momentum and whip, trust the motion bar over the color bar. Calm and contrast give motion no weight, and contrast rewards a color and brightness flip. For whip mode, end a shot with a hard whip and start the next whipping the same way.
 
 ## 3. Export
 
