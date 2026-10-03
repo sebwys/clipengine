@@ -11,7 +11,9 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 # override with CLIPENGINE_MEDIA_ROOT
 _default_root = Path.home() / "Documents" / "Media" / "The Footage"
-MEDIA_ROOT = Path(os.environ.get("CLIPENGINE_MEDIA_ROOT", _default_root)).expanduser()
+# made absolute here, so stored paths never depend on the cwd
+MEDIA_ROOT = Path(os.path.abspath(
+    Path(os.environ.get("CLIPENGINE_MEDIA_ROOT", _default_root)).expanduser()))
 DATA_DIR = BASE_DIR / "data"
 DB_PATH = DATA_DIR / "catalog.db"
 THUMB_DIR = DATA_DIR / "thumbs"
@@ -19,7 +21,7 @@ EXPORT_DIR = BASE_DIR / "exports"
 
 # -- media tree semantics ------------------------------------------------
 
-# top-level folders under MEDIA_ROOT are camera profile folders, second
+# top level folders under MEDIA_ROOT are camera profile folders, second
 # level is country (the vibe tag). the profiles listed here shoot log,
 # so color analysis must normalize before judging vibe. unknown folders
 # fall back to automatic flat detection.
@@ -36,26 +38,28 @@ MAX_ANALYZE_BYTES = 20 * 1024**3
 
 # -- analysis parameters --------------------------------------------------
 
-FEATURE_VERSION = 1      # bump to force re-analysis after algorithm changes
+FEATURE_VERSION = 2      # bump to force reanalysis after algorithm changes
 # 320 is the calibrated reference: motion thresholds below were tuned at
 # this width, and dense flow behaves differently at other scales (the
-# downscale itself stabilizes tracking on blurred, low-texture footage).
-# changing this means bumping FEATURE_VERSION and re-analyzing.
+# downscale itself stabilizes tracking on blurred, low texture footage).
+# changing this means bumping FEATURE_VERSION and reanalyzing.
 ANALYSIS_WIDTH = 320
 WINDOW_SECONDS = 1.2     # length of the start and end windows
-MAX_WINDOW_FRAMES = 36   # cap decoded frames per window on high-fps sources
-ENERGY_SAMPLES = 8       # mid-clip flow probes for the energy profile
+# most frames a window keeps. above 30 fps the window strides to keep
+# its full length, so compared frames stay about 1/30 s apart
+MAX_WINDOW_FRAMES = 36
+ENERGY_SAMPLES = 8       # mid clip flow probes for the energy profile
 THUMB_WIDTH = 480
 THUMB_QUALITY = 85
 
-# motion thresholds. units are frame-widths per second of apparent
+# motion thresholds. units are frame widths per second of apparent
 # content motion, so values are resolution independent.
-STATIC_MAX = 0.02        # below this the window is a locked-off shot
+STATIC_MAX = 0.02        # below this the window is a locked off shot
 PAN_MIN = 0.06           # deliberate directional move
 # whips live in the measurement domain, not the physical one: optical
 # flow underestimates very fast motion (aliasing, motion blur), so this
 # is calibrated against what farneback reports. 2026-07 library audit:
-# window-energy p90 0.271, p99 0.641, so 0.85 sat above p99 and starved
+# window energy p90 0.271, p99 0.641, so 0.85 sat above p99 and starved
 # the class (2 of 438 windows). 0.60 is ~p98.5: whips stay rare but the
 # genuinely fast tail qualifies. the steadiness rule still excludes
 # chaotic shake. retune with `audit` + `relabel` as the library grows.
@@ -67,10 +71,19 @@ PUSH_MIN = 0.030         # radial expansion threshold
 # to reach this fraction of jitter, or the window is handheld. a walking
 # shot drifting right is not a pan an editor can cut on.
 STEADY_RATIO = 0.75
+# jitter leaves out one clean change of speed, a whip starting or stopping
+# inside the window, only when that one step carries at least this share
+# of the window's motion variance. smooth sway can carry that much as one
+# step (about 0.87 at 0.7 hz), so the step also has to be abrupt: the
+# speed change over the four pairs around the split must reach STEP_JUMP
+# of the gap between the two sides. a whip that ramps over up to four
+# pairs reads about 0.8 to 1.05, sway at 0.5 to 3 hz at most about 0.6.
+STEP_SHARE = 0.75
+STEP_JUMP = 0.8
 
-# flat / log detection on the 8-bit scale
+# flat / log detection on the 8 bit scale
 FLAT_SAT_MAX = 60.0      # mean saturation below this suggests log capture
-FLAT_CONTRAST_MAX = 90.0 # l-channel p90-p10 below this suggests log
+FLAT_CONTRAST_MAX = 90.0 # l channel p90-p10 below this suggests log
 
 # -- transition scoring modes ---------------------------------------------
 
@@ -87,7 +100,7 @@ DEFAULT_MODE = "momentum"
 
 # -- web ui ----------------------------------------------------------------
 
-# hard-bound to loopback. this engine is private to this machine by
+# bound to loopback only. this engine is private to this machine by
 # design; never change this to 0.0.0.0.
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8763

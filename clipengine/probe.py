@@ -1,6 +1,6 @@
 # probe.py
 # clip metadata without external tools. an mp4/mov file is a tree of
-# length-prefixed "boxes"; we walk the top level, find moov/mvhd, and
+# length prefixed "boxes"; we walk the top level, find moov/mvhd, and
 # read timescale, duration, and creation time directly. opencv fills in
 # fps and geometry through its bundled ffmpeg decoder.
 
@@ -10,14 +10,20 @@ from pathlib import Path
 
 import cv2
 
+from clipengine.reader import sane_fps
+
 # quicktime epoch: seconds since 1904-01-01 utc
 _QT_EPOCH = datetime(1904, 1, 1, tzinfo=timezone.utc)
+# creation times outside 1970 to 2100 are junk, not dates
+_CREATED_MIN = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_CREATED_MAX = datetime(2100, 1, 1, tzinfo=timezone.utc)
 _CONTAINER_EXTS = {".mp4", ".mov"}
 
 
 def _iter_boxes(f, end: int):
     """yield (type, payload_start, box_end) for consecutive boxes.
-    handles 64-bit largesize (size == 1) and to-end boxes (size == 0)."""
+    handles 64 bit largesize (size == 1) and boxes that run to the end
+    of the file (size == 0)."""
     while True:
         pos = f.tell()
         if pos + 8 > end:
@@ -60,19 +66,36 @@ def parse_container(path) -> dict:
                     if version == 1:
                         ctime, _m, timescale, duration = struct.unpack(
                             ">QQIQ", f.read(28))
+                        unknown = 0xFFFFFFFFFFFFFFFF
                     else:
                         ctime, _m, timescale, duration = struct.unpack(
                             ">IIII", f.read(16))
-                    if timescale:
+                        unknown = 0xFFFFFFFF
+                    # all ones means the writer did not know the duration
+                    if timescale and duration != unknown:
                         result["duration_s"] = duration / timescale
-                    if ctime:
-                        created = _QT_EPOCH + timedelta(seconds=ctime)
-                        result["created"] = created.isoformat(timespec="seconds")
+                    created = _created(ctime)
+                    if created:
+                        result["created"] = created
                     return result
                 return result
     except (OSError, struct.error, IndexError):
         pass
     return result
+
+
+def _created(ctime: int):
+    """iso creation time from seconds since 1904, none when unset or
+    outside 1970 to 2100."""
+    if not ctime:
+        return None
+    try:
+        created = _QT_EPOCH + timedelta(seconds=ctime)
+    except (OverflowError, ValueError):
+        return None
+    if not _CREATED_MIN <= created < _CREATED_MAX:
+        return None
+    return created.isoformat(timespec="seconds")
 
 
 def probe_cv2(path) -> dict:
@@ -82,13 +105,14 @@ def probe_cv2(path) -> dict:
         if not cap.isOpened():
             return {}
         fps = cap.get(cv2.CAP_PROP_FPS) or 0.0
-        frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        # a damaged header can report a negative count; that means unknown
+        frames = max(0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0))
         fourcc = int(cap.get(cv2.CAP_PROP_FOURCC) or 0)
         codec = ""
         if fourcc:
             codec = "".join(chr((fourcc >> 8 * i) & 0xFF)
                             for i in range(4)).strip("\x00 ")
-        out = {"fps": fps if 1.0 <= fps <= 240.0 else 30.0,
+        out = {"fps": sane_fps(fps, str(path)),
                "frames": frames,
                "width": int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0),
                "height": int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0),

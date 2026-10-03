@@ -5,6 +5,11 @@
 # gives optical flow strong features and a mathematically exact
 # translation speed.
 
+import contextlib
+import os
+import sys
+from typing import Optional
+
 import cv2
 import numpy as np
 
@@ -69,20 +74,55 @@ def color_frames(bgr: tuple[int, int, int], n: int = 30,
 
 
 def gray_ramp_frames(n: int = 30, lo: int = 110, hi: int = 140) -> list[np.ndarray]:
-    """low-contrast gray gradient: mimics unormalized log footage."""
+    """low contrast gray gradient: mimics log footage before normalization."""
     ramp = np.linspace(lo, hi, H, dtype=np.uint8)[:, None]
     frame = np.repeat(np.repeat(ramp, W, axis=1)[..., None], 3, axis=2)
     return [frame.copy() for _ in range(n)]
 
 
-def write_clip(path, frames: list[np.ndarray]) -> None:
-    vw = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"),
-                         FPS, (W, H))
-    if not vw.isOpened():
-        raise RuntimeError("cv2 VideoWriter failed to open")
-    for f in frames:
-        vw.write(f)
-    vw.release()
+class WriterUnavailable(RuntimeError):
+    """opencv has no writer for this fourcc and container here."""
+
+
+# x265 prints its banner and stats straight to fd 2
+_LOUD = {"hvc1", "hev1", "hevc"}
+
+
+@contextlib.contextmanager
+def _quiet_stderr(on: bool):
+    if not on:
+        yield
+        return
+    sys.stderr.flush()
+    saved, sink = os.dup(2), os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(sink, 2)
+        yield
+    finally:
+        os.dup2(saved, 2)
+        os.close(saved)
+        os.close(sink)
+
+
+def write_clip(path, frames: list[np.ndarray], fps: Optional[float] = None,
+               fourcc: str = "mp4v") -> None:
+    """write frames as a clip. the size comes from the first frame and fps
+    defaults to FPS. raises WriterUnavailable when the writer will not
+    open, so codec subtests can skip."""
+    if not frames:
+        raise ValueError("no frames to write")
+    h, w = frames[0].shape[:2]
+    with _quiet_stderr(fourcc.lower() in _LOUD):
+        vw = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*fourcc),
+                             FPS if fps is None else fps, (w, h),
+                             frames[0].ndim == 3)
+        if not vw.isOpened():
+            vw.release()
+            raise WriterUnavailable(
+                f"cv2 VideoWriter failed to open {fourcc} for {path}")
+        for f in frames:
+            vw.write(f)
+        vw.release()
 
 
 def make_clip(path, kinds: list[str], n_each: int = 36, seed: int = 7,

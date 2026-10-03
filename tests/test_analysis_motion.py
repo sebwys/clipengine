@@ -2,7 +2,7 @@
 # motion analysis against ground truth. synthetic frames roll a texture
 # at an exact pixel speed, so expected flow in widths/sec is arithmetic:
 # px_per_frame / width * fps. a 3 px pan at 160 px and 24 fps is 0.45,
-# chosen mid-zone: fixture speeds must not sit on class boundaries.
+# chosen mid zone: fixture speeds must not sit on class boundaries.
 
 import tempfile
 import unittest
@@ -113,8 +113,8 @@ class TestMotionFromVector(unittest.TestCase):
 
 
 class TestFullClipWindows(unittest.TestCase):
-    """the only file-backed motion test: analyze_clip must see different
-    states at the two ends of a two-phase clip."""
+    """the only file backed motion test: analyze_clip must see different
+    states at the two ends of a two phase clip."""
 
     def test_static_start_pan_end(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,6 +1,6 @@
 # test_analysis_color.py
 # color stats against constructed colors. warmth uses the lab b* axis
-# (yellow-blue), luma the l axis, and the hue histogram is weighted by
+# (yellow to blue), luma the l axis, and the hue histogram is weighted by
 # saturation and value so gray pixels cannot fake a palette.
 
 import unittest
@@ -14,9 +14,9 @@ from tests import synth
 class TestColorStats(unittest.TestCase):
     def test_warmth_orders_red_over_blue(self):
         warm = analysis.color_stats(
-            synth.color_frames((40, 60, 200)), force_log=False)   # red-ish
+            synth.color_frames((40, 60, 200)), force_log=False)   # reddish
         cool = analysis.color_stats(
-            synth.color_frames((200, 120, 40)), force_log=False)  # blue-ish
+            synth.color_frames((200, 120, 40)), force_log=False)  # bluish
         self.assertGreater(warm["warmth"], cool["warmth"] + 20)
 
     def test_luma_orders_bright_over_dark(self):

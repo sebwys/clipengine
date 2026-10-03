@@ -1,5 +1,5 @@
 # test_matching.py
-# scoring math on hand-built vectors. building vectors directly (instead
+# scoring math on hand built vectors. building vectors directly (instead
 # of analyzing video) makes every expectation exact: we control each
 # slot, so we know which clip must win and roughly by how much.
 
@@ -37,7 +37,7 @@ def make_vec(**kw) -> np.ndarray:
 
 
 def lib_of(specs: list[tuple[str, np.ndarray]]) -> matching.Library:
-    """specs: (country, vector) pairs -> in-memory library, ids 1..n."""
+    """specs: (country, vector) pairs -> in memory library, ids 1..n."""
     ids = np.arange(1, len(specs) + 1, dtype=np.int64)
     F = np.stack([v for _, v in specs]).astype(np.float32)
     meta = [{"id": int(i), "name": f"clip{i}", "country": c, "profile": "t",

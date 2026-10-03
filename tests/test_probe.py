@@ -1,5 +1,5 @@
 # test_probe.py
-# the mp4 box parser is exercised two ways: against a hand-built binary
+# the mp4 box parser is exercised two ways: against a hand built binary
 # fixture with known values (proving we read the spec correctly) and
 # against a real file written by opencv (proving we survive real output).
 

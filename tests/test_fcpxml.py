@@ -1,5 +1,5 @@
 # test_fcpxml.py
-# the fcpxml exporter must produce frame-accurate rational times and
+# the fcpxml exporter must produce frame accurate rational times and
 # properly escaped file urls, or fcp/resolve will misalign or fail to
 # relink the import. parsing the output back is the proof.
 
@@ -65,7 +65,7 @@ class TestExport(unittest.TestCase):
         rep = assets[0].find("media-rep")
         self.assertEqual(rep.get("kind"), "original-media")
         self.assertTrue(rep.get("src").startswith("file:///"))
-        self.assertIn("%20", rep.get("src"))  # spaces url-encoded
+        self.assertIn("%20", rep.get("src"))  # spaces url encoded
 
         clips = root.findall(".//spine/asset-clip")
         self.assertEqual([c.get("name") for c in clips],

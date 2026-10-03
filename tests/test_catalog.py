@@ -1,6 +1,6 @@
 # test_catalog.py
 # the catalog is the engine's memory. these tests build a fake footage
-# tree on disk and verify: path semantics (profile/country), stat-only
+# tree on disk and verify: path semantics (profile/country), stat only
 # eviction awareness, idempotent rescans, change detection, and the
 # pending/analyzed lifecycle.
 

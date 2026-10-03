@@ -1,7 +1,7 @@
 # test_server.py
 # the web layer against a live server on an ephemeral port: json routes,
-# byte-range streaming (the thing that makes <video> scrubbing work),
-# thumbnail serving, and the icloud-eviction refusal.
+# byte range streaming (the thing that makes <video> scrubbing work),
+# thumbnail serving, and the refusal of clips evicted to icloud.
 
 import json
 import threading
@@ -49,7 +49,9 @@ class ServerBase(TempDirsMixin, unittest.TestCase):
         conn.close()
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
         self.port = self.httpd.server_address[1]
-        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+        # a short poll keeps shutdown fast; the default waits half a second
+        threading.Thread(target=self.httpd.serve_forever, args=(0.02,),
+                         daemon=True).start()
         self.addCleanup(self.httpd.server_close)
         self.addCleanup(self.httpd.shutdown)
 

@@ -132,7 +132,7 @@ may not play. safari plays them natively. matching still works everywhere.</div>
 </main>
 <footer>
   <div id="seq"><span class="empty" style="padding:0">sequence tray is empty:
-    add matches or auto-build from a selected seed</span></div>
+    add matches or auto build from a selected seed</span></div>
   <label>len <input type="number" id="seqlen" value="8" min="2" max="30"
     style="width:56px"></label>
   <label>countries <select id="cmode">
@@ -140,7 +140,7 @@ may not play. safari plays them natively. matching still works everywhere.</div>
     <option value="same">same as seed</option>
     <option value="travel">travel (vary)</option>
   </select></label>
-  <button id="autobuild">auto-build</button>
+  <button id="autobuild">auto build</button>
   <button id="exportseq" class="primary">export</button>
   <button id="clearseq">clear</button>
   <span class="edge" id="seqtotal"></span>
@@ -152,8 +152,8 @@ may not play. safari plays them natively. matching still works everywhere.</div>
 
 const MODE_HINTS = {
   momentum: "carry motion through the cut",
-  whip: "blur-to-blur: both sides moving fast, same direction",
-  calm: "still-to-still, color-led",
+  whip: "blur to blur: both sides moving fast, same direction",
+  calm: "still to still, color led",
   contrast: "deliberate vibe flip",
 };
 
@@ -299,7 +299,11 @@ async function selectClip(id) {
   if (s.created) add("shot", s.created);
   add("start", s.start_class || "?");
   add("end", s.end_class || "?");
-  if (s.flat !== undefined) add("log-flat", s.flat ? "yes (normalized)" : "no");
+  if (s.flat !== undefined) {
+    const own = ["start", "end"].filter(w => s[w] && s[w].flat);
+    add("log-flat", s.flat ? "yes (normalized)"
+      : own.length ? `no (${own.join(" and ")} normalized)` : "no");
+  }
   if (s.start) add("start color",
     `luma ${s.start.luma} sat ${s.start.sat} warmth ${s.start.warmth}`);
   if (s.end) add("end color",
@@ -411,7 +415,7 @@ function renderSeq() {
   wrap.replaceChildren();
   if (!state.seq.length) {
     wrap.append(el("span", "empty",
-      "sequence tray is empty: add matches or auto-build from a selected seed"));
+      "sequence tray is empty: add matches or auto build from a selected seed"));
     $("seqtotal").textContent = "";
     return;
   }
@@ -448,7 +452,7 @@ async function autoBuild() {
       ({ id: c.id, name: c.name, country: c.country }));
     state.edges = data.edges;
     renderSeq();
-    toast(`built ${data.clips.length}-clip chain, total ${data.total}`);
+    toast(`built a chain of ${data.clips.length} clips, total ${data.total}`);
   } catch (err) { toast(String(err.message || err)); }
 }
 

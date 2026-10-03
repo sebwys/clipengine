@@ -1,7 +1,7 @@
 # test_sequence.py
-# beam search on hand-built matrices. the key fixture is a greedy trap:
+# beam search on hand built matrices. the key fixture is a greedy trap:
 # the single best first edge leads into a dead end, so only a searcher
-# that keeps alternatives alive finds the high-total chain.
+# that keeps alternatives alive finds the chain with the higher total.
 
 import json
 import tempfile
